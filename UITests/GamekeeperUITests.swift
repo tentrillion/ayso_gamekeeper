@@ -51,6 +51,10 @@ final class GamekeeperUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["Player #12"].waitForExistence(timeout: 3))
     XCTAssertTrue(app.staticTexts["Home: Home · Light blue"].exists)
     XCTAssertTrue(app.staticTexts["Away: Away · Gold"].exists)
+    let record = XCTAttachment(screenshot: app.screenshot())
+    record.name = "Colored shirts in game record"
+    record.lifetime = .keepAlways
+    add(record)
   }
 
   func testBlankTapOnlyRevealsAndEntryStaysVisible() {

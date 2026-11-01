@@ -42,6 +42,16 @@ extension Jersey {
   }
 }
 
+struct JerseyIcon: View {
+  let jersey: Jersey
+
+  var body: some View {
+    Image(systemName: "tshirt.fill").symbolRenderingMode(.monochrome)
+      .foregroundStyle(jersey.color)
+      .shadow(color: jersey == .black ? .white.opacity(0.6) : .clear, radius: 1)
+  }
+}
+
 struct GamekeeperView: View {
   @ObservedObject var controller: GameController
   @Environment(\.scenePhase) private var scenePhase
@@ -335,8 +345,7 @@ struct GamekeeperView: View {
     let team = game.team(side)
     return VStack(spacing: 8) {
       HStack(spacing: 6) {
-        Image(systemName: "tshirt.fill").foregroundStyle(team.jersey.color)
-          .shadow(color: .white.opacity(0.4), radius: team.jersey == .black ? 1 : 0)
+        JerseyIcon(jersey: team.jersey)
         Text(side.rawValue.uppercased()).font(.caption.weight(.bold)).tracking(1)
       }
       Text(team.name).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.6)

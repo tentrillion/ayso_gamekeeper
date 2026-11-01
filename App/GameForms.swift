@@ -111,7 +111,7 @@ struct EventEditor: View {
         VStack(spacing: 18) {
           if let game = controller.game {
             HStack {
-              Image(systemName: "tshirt.fill").foregroundStyle(game.team(event.side).jersey.color)
+              JerseyIcon(jersey: game.team(event.side).jersey)
               Text("\(event.side.rawValue) · \(game.team(event.side).name)").font(.headline)
               Spacer()
               Text(game.minuteLabel(for: event)).font(.headline.monospacedDigit()).foregroundStyle(
@@ -241,9 +241,11 @@ struct RecordView: View {
             Text(game.phase.title).foregroundStyle(.secondary)
             ForEach(Side.allCases, id: \.self) { side in
               let team = game.team(side)
-              Label(
-                "\(side.rawValue): \(team.name) · \(team.jersey.rawValue)",
-                systemImage: "tshirt.fill")
+              Label {
+                Text("\(side.rawValue): \(team.name) · \(team.jersey.rawValue)")
+              } icon: {
+                JerseyIcon(jersey: team.jersey)
+              }
               if !team.coach.isEmpty { Text("Coach: \(team.coach)").font(.footnote) }
             }
           }
