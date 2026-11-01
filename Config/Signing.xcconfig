@@ -1,0 +1,4 @@
+GAMEKEEPER_BUNDLE_IDENTIFIER = org.example.aysogamekeeper
+
+// Keep personal signing settings outside the public repository.
+#include? "Signing.local.xcconfig"

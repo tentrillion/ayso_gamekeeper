@@ -1,0 +1,14 @@
+.build/
+.build-logs/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# Personal signing settings and credentials
+Config/Signing.local.xcconfig
+*.mobileprovision
+*.p12
+*.p8
+.env
+.env.*
