@@ -177,3 +177,43 @@ private func makeGame() -> Game {
     #expect(try decoder.decode(Jersey.self, from: JSONEncoder().encode(jersey)) == jersey)
   }
 }
+
+@Test func gameDetailsSurviveSaveAndReload() throws {
+  let date = Date(timeIntervalSince1970: 1_700_000_000)
+  var game = Game(
+    home: Team(name: "Home", jersey: .darkBlue),
+    away: Team(name: "Away", jersey: .gold),
+    scheduledStart: date, location: "  Practice Field  ")
+  game.start(at: sample(0))
+  game.endPeriod(at: sample(1500))
+  game.start(at: sample(1800))
+  game.save(game.draft(side: .home, kind: .goal, at: sample(1900)))
+  game.endPeriod(at: sample(3300))
+  let directory = FileManager.default.temporaryDirectory.appending(
+    path: "gamekeeper-test-\(UUID())")
+  let repository = GameRepository(file: directory.appending(path: "games.json"))
+  try repository.save(GameArchive(games: [game]))
+  let saved = try #require(repository.load().games.first)
+  #expect(saved.phase == .finished)
+  #expect(saved.displayDate == date)
+  #expect(saved.locationLabel == "Practice Field")
+  #expect(saved.score(.home) == 1)
+}
+
+@Test func existingGamesWithoutDetailsRemainReadable() throws {
+  var game = makeGame()
+  game.start(at: sample(0))
+  game.save(game.draft(side: .away, kind: .goal, at: sample(80)))
+  var object = try #require(
+    JSONSerialization.jsonObject(with: JSONEncoder().encode(game)) as? [String: Any])
+  object.removeValue(forKey: "scheduledStart")
+  object.removeValue(forKey: "location")
+  let data = try JSONSerialization.data(withJSONObject: object)
+  let restored = try JSONDecoder().decode(Game.self, from: data)
+  #expect(restored.displayDate == game.created)
+  #expect(restored.locationLabel == "Location not recorded")
+  #expect(restored.phase == .firstHalf)
+  #expect(restored.elapsed(at: sample(200)) == 200)
+  #expect(restored.score(.away) == 1)
+  #expect(restored.events == game.events)
+}

@@ -2,13 +2,13 @@ import XCTest
 
 @MainActor
 final class GamekeeperUITests: XCTestCase {
-  private func launchGame() -> XCUIApplication {
+  private func launchGame(location: String? = nil, idleDelay: String = "5") -> XCUIApplication {
     let app = XCUIApplication()
     app.launchEnvironment["GAMEKEEPER_TEST_STORE"] = UUID().uuidString
-    app.launchArguments = ["-idleDelay", "5"]
+    app.launchArguments = ["-idleDelay", idleDelay]
     app.launch()
-    XCTAssertTrue(app.buttons["Set up a game"].waitForExistence(timeout: 10))
-    app.buttons["Set up a game"].tap()
+    XCTAssertTrue(app.buttons["newGame"].waitForExistence(timeout: 10))
+    app.buttons["newGame"].tap()
     app.buttons["jerseyPickerHome"].tap()
     XCTAssertTrue(app.buttons["Light blue"].waitForExistence(timeout: 3))
     let dropdown = XCTAttachment(screenshot: app.screenshot())
@@ -22,6 +22,11 @@ final class GamekeeperUITests: XCTestCase {
     colors.name = "Selected jersey colors"
     colors.lifetime = .keepAlways
     add(colors)
+    if let location {
+      let field = app.textFields["gameLocation"]
+      field.tap()
+      field.typeText(location)
+    }
     app.buttons["Create"].tap()
     XCTAssertTrue(app.buttons["Start first half"].waitForExistence(timeout: 5))
     app.buttons["Start first half"].tap()
@@ -77,5 +82,66 @@ final class GamekeeperUITests: XCTestCase {
     app.buttons["Cancel"].tap()
     XCTAssertEqual(app.staticTexts["scoreHome"].label, "0")
     XCTAssertTrue(reveal.waitForExistence(timeout: 8))
+  }
+
+  func testEndGameReturnsToLibraryAndAllowsAnotherGame() {
+    let app = launchGame(location: "Practice Field", idleDelay: "0")
+    app.buttons["goalHome"].tap()
+    app.buttons["1"].tap()
+    app.buttons["2"].tap()
+    app.buttons["saveEvent"].tap()
+    app.buttons["backToGames"].tap()
+    XCTAssertTrue(app.buttons["resumeGame"].waitForExistence(timeout: 3))
+    XCTAssertFalse(app.buttons["newGame"].isEnabled)
+    app.buttons["resumeGame"].tap()
+    XCTAssertEqual(app.staticTexts["scoreHome"].label, "1")
+
+    app.buttons["End half"].tap()
+    app.buttons.matching(identifier: "confirmEndPeriod").firstMatch.tap()
+    XCTAssertTrue(app.buttons["Start second half"].waitForExistence(timeout: 3))
+    app.buttons["Start second half"].tap()
+    let clockFrame = app.staticTexts["gameClock"].frame
+    let outsideConfirmation = app.coordinate(withNormalizedOffset: .zero)
+      .withOffset(CGVector(dx: clockFrame.midX, dy: clockFrame.midY))
+    app.buttons["End game"].tap()
+    outsideConfirmation.tap()
+    XCTAssertTrue(app.buttons["goalHome"].exists)
+    app.buttons["End game"].tap()
+    app.buttons.matching(identifier: "confirmEndPeriod").firstMatch.tap()
+
+    XCTAssertTrue(app.staticTexts["previousGames"].waitForExistence(timeout: 3))
+    XCTAssertTrue(app.buttons["newGame"].isEnabled)
+    XCTAssertTrue(app.staticTexts["Practice Field"].exists)
+    XCTAssertFalse(app.staticTexts["gameDate"].label.isEmpty)
+    let screenshot = XCTAttachment(screenshot: app.screenshot())
+    screenshot.name = "Previous games after final whistle"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+
+    for _ in 0..<2 {
+      app.buttons["previousGame"].tap()
+      XCTAssertTrue(
+        app.staticTexts["Full time"].waitForExistence(timeout: 3)
+          || app.staticTexts["FULL TIME"].exists)
+      XCTAssertEqual(app.staticTexts["scoreHome"].label, "1")
+      app.buttons["Record"].tap()
+      XCTAssertTrue(app.staticTexts["Player #12"].waitForExistence(timeout: 3))
+      XCTAssertTrue(app.staticTexts["Practice Field"].exists)
+      app.buttons["Done"].tap()
+      app.buttons["backToGames"].tap()
+      XCTAssertTrue(app.buttons["newGame"].waitForExistence(timeout: 3))
+    }
+    app.buttons["newGame"].tap()
+    app.buttons["Create"].tap()
+    XCTAssertTrue(app.buttons["Start first half"].waitForExistence(timeout: 3))
+    XCTAssertEqual(app.staticTexts["scoreHome"].label, "0")
+    app.buttons["backToGames"].tap()
+    XCTAssertEqual(app.buttons.matching(identifier: "previousGame").count, 1)
+    app.terminate()
+    app.launch()
+    XCTAssertTrue(app.buttons["Start first half"].waitForExistence(timeout: 10))
+    app.buttons["backToGames"].tap()
+    XCTAssertEqual(app.buttons.matching(identifier: "previousGame").count, 1)
+    XCTAssertTrue(app.staticTexts["Practice Field"].exists)
   }
 }

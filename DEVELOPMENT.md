@@ -1,5 +1,12 @@
 # Development and testing
 
+## Game flow verified on 2026-11-01
+
+- All 13 core tests pass, including game details and older-record compatibility.
+- Goal entry, blank-screen protection, and the complete game-ending flow pass in the simulator.
+- The game-ending test covers cancellation, completion, return navigation, another game, and relaunch.
+- Previous games show saved date, time, and location; older games use their creation date and a missing-location label.
+
 ## Validation
 
 Run the core tests without an iOS simulator:

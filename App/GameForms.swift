@@ -12,6 +12,8 @@ struct SetupView: View {
   @State private var awayCoach = ""
   @State private var gameNumber = ""
   @State private var halfMinutes = 25
+  @State private var scheduledStart = Date()
+  @State private var location = ""
 
   var body: some View {
     NavigationStack {
@@ -28,6 +30,10 @@ struct SetupView: View {
         }
         if let error = controller.error { Text(error).foregroundStyle(.red) }
         Section("Game") {
+          DatePicker(
+            "Date and time", selection: $scheduledStart,
+            displayedComponents: [.date, .hourAndMinute])
+          TextField("Location (optional)", text: $location).accessibilityIdentifier("gameLocation")
           TextField("Game ID (optional)", text: $gameNumber)
           Stepper("\(halfMinutes) minutes per half", value: $halfMinutes, in: 1...60)
           Text("Two halves. Change the duration to match your game.").font(.footnote)
@@ -50,7 +56,8 @@ struct SetupView: View {
               away: Team(
                 name: away.trimmingCharacters(in: .whitespacesAndNewlines), jersey: awayJersey,
                 coach: awayCoach),
-              gameNumber: gameNumber, halfMinutes: halfMinutes
+              gameNumber: gameNumber, halfMinutes: halfMinutes,
+              scheduledStart: scheduledStart, location: location
             )
             controller.create(game)
             if controller.game?.id == game.id { dismiss() }
@@ -239,6 +246,10 @@ struct RecordView: View {
               "\(game.home.name)  \(game.score(.home)) – \(game.score(.away))  \(game.away.name)"
             ).font(.headline)
             Text(game.phase.title).foregroundStyle(.secondary)
+            Label(
+              game.displayDate.formatted(date: .abbreviated, time: .shortened),
+              systemImage: "calendar")
+            Label(game.locationLabel, systemImage: "mappin.and.ellipse")
             ForEach(Side.allCases, id: \.self) { side in
               let team = game.team(side)
               Label {

@@ -49,6 +49,18 @@ final class GameController: ObservableObject {
     reviewClock()
   }
 
+  func showLibrary() {
+    selectedID = nil
+    clockReview = false
+  }
+
+  func endPeriod(at sample: ClockSample) {
+    guard let game, game.phase.isPlaying else { return }
+    let finishesGame = game.phase == .secondHalf
+    guard update({ $0.endPeriod(at: sample) }) else { return }
+    if finishesGame { showLibrary() }
+  }
+
   func create(_ game: Game) {
     guard !hasUnfinishedGame else { return }
     var next = archive
@@ -56,11 +68,12 @@ final class GameController: ObservableObject {
     if commit(next) { selectedID = game.id }
   }
 
-  func update(_ change: (inout Game) -> Void) {
-    guard let index = archive.games.firstIndex(where: { $0.id == selectedID }) else { return }
+  @discardableResult
+  func update(_ change: (inout Game) -> Void) -> Bool {
+    guard let index = archive.games.firstIndex(where: { $0.id == selectedID }) else { return false }
     var next = archive
     change(&next.games[index])
-    _ = commit(next)
+    return commit(next)
   }
 
   func pollAlert(at sample: ClockSample) -> HalfAlert? {

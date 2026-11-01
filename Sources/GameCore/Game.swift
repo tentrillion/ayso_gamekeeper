@@ -136,6 +136,8 @@ public enum HalfAlert: String, Codable, CaseIterable, Sendable {
 public struct Game: Identifiable, Codable, Equatable, Sendable {
   public var id = UUID()
   public var created = Date()
+  public var scheduledStart: Date?
+  public var location: String?
   public var home: Team
   public var away: Team
   public var gameNumber: String
@@ -146,11 +148,22 @@ public struct Game: Identifiable, Codable, Equatable, Sendable {
   public var events: [GameEvent] = []
   public private(set) var alertsFired: Set<HalfAlert> = []
 
-  public init(home: Team, away: Team, gameNumber: String = "", halfMinutes: Int = 25) {
+  public init(
+    home: Team, away: Team, gameNumber: String = "", halfMinutes: Int = 25,
+    scheduledStart: Date? = nil, location: String? = nil
+  ) {
     self.home = home
     self.away = away
     self.gameNumber = gameNumber
+    self.scheduledStart = scheduledStart
+    self.location = location?.trimmingCharacters(in: .whitespacesAndNewlines)
     self.halfMinutes = min(60, max(1, halfMinutes))
+  }
+
+  public var displayDate: Date { scheduledStart ?? created }
+  public var locationLabel: String {
+    let value = location?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return value.isEmpty ? "Location not recorded" : value
   }
 
   public var isRunning: Bool { anchor != nil }

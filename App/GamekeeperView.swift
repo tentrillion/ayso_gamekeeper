@@ -96,6 +96,8 @@ struct GamekeeperView: View {
           .toolbarBackground(Palette.background, for: .navigationBar)
           .toolbarBackground(.visible, for: .navigationBar)
         }
+        // Reset navigation and toolbar state when opening or leaving a game.
+        .id(controller.selectedID)
         .simultaneousGesture(
           DragGesture(minimumDistance: 0).onChanged { _ in
             screen.interact(at: ClockSample.now.continuous)
@@ -153,12 +155,15 @@ struct GamekeeperView: View {
     } message: {
       Text(controller.error ?? "")
     }
-    .confirmationDialog("End this half?", isPresented: $confirmEnd, titleVisibility: .visible) {
+    .confirmationDialog(
+      controller.game?.phase == .secondHalf ? "End this game?" : "End this half?",
+      isPresented: $confirmEnd, titleVisibility: .visible
+    ) {
       Button(
         controller.game?.phase == .firstHalf ? "End first half" : "End game", role: .destructive
       ) {
-        controller.update { $0.endPeriod(at: .now) }
-      }
+        controller.endPeriod(at: .now)
+      }.accessibilityIdentifier("confirmEndPeriod")
     } message: {
       Text("The clock stops only when you confirm.")
     }
@@ -189,42 +194,67 @@ struct GamekeeperView: View {
   private var library: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 24) {
-        VStack(alignment: .leading, spacing: 8) {
-          Text("YOUR GAME.\nONE GLANCE.").font(.system(size: 34, weight: .black, design: .rounded))
-          Text("Clock, goals, and cards. Ready at your wrist.").foregroundStyle(.secondary)
-        }.padding(.top, 24)
-        if !controller.hasUnfinishedGame {
-          Button {
-            sheet = .setup
-          } label: {
-            Label("Set up a game", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
-          }.buttonStyle(.borderedProminent).foregroundStyle(.black)
+        Button {
+          sheet = .setup
+        } label: {
+          Label("New game", systemImage: "plus").frame(maxWidth: .infinity, minHeight: 44)
         }
-        ForEach(controller.archive.games) { game in
-          Button {
-            controller.select(game.id)
-          } label: {
-            VStack(alignment: .leading, spacing: 8) {
-              Text(game.phase == .finished ? "FINISHED" : "RESUME GAME")
-                .font(.caption.weight(.bold)).foregroundStyle(Palette.accent)
-              Text(
-                "\(game.home.name)  \(game.score(.home)) – \(game.score(.away))  \(game.away.name)"
-              )
-              .font(.headline).foregroundStyle(.white)
-              Text(game.created.formatted(date: .abbreviated, time: .omitted)).font(.caption)
-                .foregroundStyle(.secondary)
-            }.frame(maxWidth: .infinity, alignment: .leading).padding()
-              .background(Palette.panel, in: RoundedRectangle(cornerRadius: 20))
-          }.buttonStyle(.plain)
+        .buttonStyle(.borderedProminent).foregroundStyle(.black)
+        .disabled(controller.hasUnfinishedGame)
+        .accessibilityIdentifier("newGame")
+
+        if controller.hasUnfinishedGame {
+          Text("Current game").font(.title2.bold())
+          ForEach(controller.archive.games.filter { $0.phase != .finished }) { game in
+            gameRow(game)
+          }
+          Text("Finish the current game before starting another.")
+            .font(.footnote).foregroundStyle(.secondary)
         }
-        if controller.archive.games.isEmpty {
-          Label("Games save on this phone", systemImage: "iphone").font(.footnote).foregroundStyle(
-            .secondary)
+
+        Text("Previous games").font(.title2.bold()).accessibilityIdentifier("previousGames")
+        let completed = controller.archive.games.filter { $0.phase == .finished }
+          .sorted { $0.displayDate > $1.displayDate }
+        if completed.isEmpty {
+          Text("Completed games will appear here.").foregroundStyle(.secondary)
+        }
+        ForEach(completed) { game in
+          gameRow(game)
         }
       }.padding(20)
     }
     .background(Palette.background)
-    .navigationTitle("Gamekeeper").navigationBarTitleDisplayMode(.inline)
+    .navigationTitle("Games").navigationBarTitleDisplayMode(.inline)
+  }
+
+  private func gameRow(_ game: Game) -> some View {
+    Button {
+      controller.select(game.id)
+    } label: {
+      VStack(alignment: .leading, spacing: 10) {
+        if game.phase != .finished {
+          Text("RESUME GAME").font(.caption.bold()).foregroundStyle(Palette.accent)
+        }
+        ForEach(Side.allCases, id: \.self) { side in
+          HStack {
+            JerseyIcon(jersey: game.team(side).jersey)
+            Text(game.team(side).name).foregroundStyle(.white)
+            Spacer()
+            Text("\(game.score(side))").foregroundStyle(.white).monospacedDigit()
+          }.font(.headline)
+        }
+        Label(
+          game.displayDate.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar"
+        )
+        .accessibilityIdentifier("gameDate")
+        Label(game.locationLabel, systemImage: "mappin.and.ellipse")
+      }
+      .font(.subheadline).foregroundStyle(.secondary)
+      .frame(maxWidth: .infinity, alignment: .leading).padding()
+      .background(Palette.panel, in: RoundedRectangle(cornerRadius: 20))
+    }
+    .buttonStyle(.plain)
+    .accessibilityIdentifier(game.phase == .finished ? "previousGame" : "resumeGame")
   }
 
   private func liveGame(_ game: Game) -> some View {
@@ -260,7 +290,7 @@ struct GamekeeperView: View {
             )
             .frame(maxWidth: .infinity, minHeight: 42)
           }.buttonStyle(GameButtonStyle())
-          Button("End half") { confirmEnd = true }
+          Button(game.phase == .secondHalf ? "End game" : "End half") { confirmEnd = true }
             .frame(minHeight: 42).buttonStyle(GameButtonStyle())
         }
       } else if game.phase != .finished {
@@ -320,7 +350,11 @@ struct GamekeeperView: View {
     .navigationBarTitleDisplayMode(.inline)
     .toolbar {
       ToolbarItem(placement: .topBarLeading) {
-        Button("Games", systemImage: "chevron.left") { controller.selectedID = nil }
+        Button {
+          controller.showLibrary()
+        } label: {
+          Label("Games", systemImage: "chevron.left")
+        }.accessibilityIdentifier("backToGames")
       }
       ToolbarItem(placement: .principal) {
         Text(game.gameNumber.isEmpty ? "GAMEKEEPER" : "GAME \(game.gameNumber)")
