@@ -5,7 +5,7 @@ A simple iPhone app for **in-game soccer reffing**: keep time, record goals, and
 This is **vibe coded** and intended **solely for the developer's personal use**.
 It is a personal project, not an official AYSO app. But it seems to work!
 
-We considered TestFlight, App Store distribution, and direct installation from a Mac; direct installation suited a personal app best.
+We considered TestFlight, App Store distribution, and direct installation from a Mac; direct installation suited a personal app best.  It does thus require weekly app-signing and enabling Developer Mode on a destination iPhone.  But we don't have to pay Apple any fees as a result.
 
 ## During a game
 
