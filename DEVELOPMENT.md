@@ -7,6 +7,15 @@
 - The game-ending test covers cancellation, completion, return navigation, another game, and relaunch.
 - Previous games show saved date, time, and location; older games use their creation date and a missing-location label.
 
+## Vibration revision
+
+The developer confirmed that the original version vibrated the phone, but the alerts were too subtle.
+The revised warnings use three 0.6-second pulses, separated by 0.25 seconds.
+The half-end alert uses two 1.5-second pulses, separated by 0.4 seconds.
+Both patterns use maximum intensity and sharpness. Settings test buzzes use the same patterns as game alerts.
+The alert schedule and game-clock behavior are unchanged.
+Noticeability while running still needs a trial with the phone in its strap.
+
 ## Validation
 
 Run the core tests without an iOS simulator:

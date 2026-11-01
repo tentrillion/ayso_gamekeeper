@@ -17,16 +17,9 @@ final class GameHaptics {
       }
       guard let engine else { return false }
       try engine.start()
-      let event = CHHapticEvent(
-        eventType: .hapticContinuous,
-        parameters: [
-          CHHapticEventParameter(parameterID: .hapticIntensity, value: 1),
-          CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
-        ],
-        relativeTime: 0,
-        duration: alert == .halfEnd ? 1.0 : 0.2
-      )
-      let pattern = try CHHapticPattern(events: [event], parameters: [])
+      let pattern = try Self.pattern(for: alert)
+      // A test buzz replaces any pulse still playing; an already finished player may reject stop.
+      try? player?.stop(atTime: CHHapticTimeImmediate)
       player = try engine.makePlayer(with: pattern)
       try player?.start(atTime: CHHapticTimeImmediate)
       return true
@@ -35,5 +28,22 @@ final class GameHaptics {
       player = nil
       return false
     }
+  }
+
+  static func pattern(for alert: HalfAlert) throws -> CHHapticPattern {
+    let pulseDuration = alert == .halfEnd ? 1.5 : 0.6
+    let starts: [Double] = alert == .halfEnd ? [0, 1.9] : [0, 0.85, 1.7]
+    let events = starts.map { start in
+      CHHapticEvent(
+        eventType: .hapticContinuous,
+        parameters: [
+          CHHapticEventParameter(parameterID: .hapticIntensity, value: 1),
+          CHHapticEventParameter(parameterID: .hapticSharpness, value: 1),
+        ],
+        relativeTime: start,
+        duration: pulseDuration
+      )
+    }
+    return try CHHapticPattern(events: events, parameters: [])
   }
 }
